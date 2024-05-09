@@ -6,10 +6,12 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 	"time"
 
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/go-ping/ping"
@@ -19,25 +21,25 @@ func timeString() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
 
-func pingHost(host string) (string, error) {
+func pingHost(host string) (float64, error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		return "", err
+		return -1.0, err
 	}
 
 	pinger.Count = 1
 	err = pinger.Run()
 	if err != nil {
-		return "", err
+		return -1.0, err
 	}
 
 	stats := pinger.Statistics()
-	pingTime := fmt.Sprintf("%v", stats.AvgRtt)
+	pingTime := 1000.0 * stats.AvgRtt.Seconds()
 
 	return pingTime, nil
 }
 
-func writeLog(pingTime string) {
+func writeLog(msg string) {
 	f, err := os.OpenFile("netavail.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println(err)
@@ -45,7 +47,7 @@ func writeLog(pingTime string) {
 	}
 	defer f.Close()
 
-	logLine := fmt.Sprintf("%s %s\n", timeString(), pingTime)
+	logLine := fmt.Sprintf("%s %v\n", timeString(), msg)
 
 	if _, err := f.WriteString(logLine); err != nil {
 		fmt.Println(err)
@@ -57,25 +59,33 @@ func main() {
 	w := a.NewWindow("Ping Monitor")
 
 	pingLabel := widget.NewLabel("")
+	errorLabel := canvas.NewText("", color.RGBA{R: 255, G: 0, B: 0, A: 255})
 
 	go func() {
 		for {
 			pingTime, err := pingHost("google.com")
+			strPingTime := fmt.Sprintf("%.2f ms", pingTime)
 			if err != nil {
+				errorLabel.Text = timeString() + " Error: " + err.Error()
 				fmt.Println(timeString() + " Error: " + err.Error())
 				writeLog("!! Error: " + err.Error())
 				pingLabel.SetText(timeString() + " Error: " + err.Error())
-				time.Sleep(1 * time.Second)
+				time.Sleep(2 * time.Second)
 				continue
 			}
 
-			pingLabel.SetText(timeString() + " " + pingTime)
-			writeLog(pingTime)
+			pingLabel.SetText(timeString() + " " + strPingTime)
+			writeLog(strPingTime)
 
-			time.Sleep(5 * time.Second)
+			if pingTime > 400.0 {
+				errorLabel.Text = timeString() + " High ping time: " + strPingTime
+				fmt.Println(timeString() + " High ping time: " + strPingTime)
+			}
+
+			time.Sleep(10 * time.Second)
 		}
 	}()
 
-	w.SetContent(container.NewVBox(pingLabel))
+	w.SetContent(container.NewVBox(pingLabel, errorLabel))
 	w.ShowAndRun()
 }
