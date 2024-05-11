@@ -60,6 +60,7 @@ func main() {
 
 	pingLabel := widget.NewLabel("")
 	errorLabel := canvas.NewText("", color.RGBA{R: 255, G: 0, B: 0, A: 255})
+	writeLog("netavail starting.")
 
 	go func() {
 		for {
@@ -67,6 +68,9 @@ func main() {
 			strPingTime := fmt.Sprintf("%.2f ms", pingTime)
 			if err != nil {
 				errorLabel.Text = timeString() + " Error: " + err.Error()
+				// For some reason, Text object doesn't refresh automatically,
+				// even though the Label object does. So we have to do it manually.
+				errorLabel.Refresh()
 				fmt.Println(timeString() + " Error: " + err.Error())
 				writeLog("!! Error: " + err.Error())
 				pingLabel.SetText(timeString() + " Error: " + err.Error())
