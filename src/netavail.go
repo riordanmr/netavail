@@ -60,7 +60,8 @@ func main() {
 
 	pingLabel := widget.NewLabel("")
 	errorLabel := canvas.NewText("", color.RGBA{R: 255, G: 0, B: 0, A: 255})
-	writeLog("netavail starting.")
+	hostname, _ := os.Hostname()
+	writeLog("netavail starting on " + hostname)
 
 	go func() {
 		for {
@@ -83,6 +84,7 @@ func main() {
 
 			if pingTime > 400.0 {
 				errorLabel.Text = timeString() + " High ping time: " + strPingTime
+				errorLabel.Refresh()
 				fmt.Println(timeString() + " High ping time: " + strPingTime)
 			}
 

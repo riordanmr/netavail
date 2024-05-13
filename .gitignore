@@ -51,3 +51,5 @@ node_modules
 # Windows generated files
 Thumbs.db
 
+# mrr
+test/test
